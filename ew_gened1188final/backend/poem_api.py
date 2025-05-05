@@ -21,12 +21,16 @@ def complete(req: Req):
         "parameters": {
             "max_new_tokens": 50,
             "temperature": req.temperature,
-            "top_p": 0.8,
+            "top_p": 0.9,
             "top_k": 50,
             "repetition_penalty": req.repetition_penalty,
+            "do_sample": True,  # ensure stochastic generation
+        },
+        "options": {
+            "use_cache": False  # bypass HF caching so identical prompts with new params regenerate
         },
     }
-    r = requests.post(API_URL, headers=HEADERS, json=payload)
+    r = requests.post(API_URL, headers=HEADERS, json=payload, timeout=60)
     r.raise_for_status()
     data = r.json()
     poem = "\n".join(item["generated_text"] for item in data)
