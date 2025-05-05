@@ -15,21 +15,12 @@ export default function Home() {
 
   const [showSettings, setShowSettings] = useState<boolean>(false);
 
+  // Handle key input, including Enter to generate using committed settings
   useEffect(() => {
     const onKeyDown = async (e: KeyboardEvent) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        const res = await fetch("/api/complete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            prompt: input,
-            temperature: committedTemp,
-            repetition_penalty: committedRepPenalty,
-          }),
-        });
-        const data = await res.json();
-        setPoem(data.poem ?? "");
+        await generatePoem();
       } else if (e.key === "Backspace") {
         e.preventDefault();
         setInput((t) => t.slice(0, -1));
@@ -41,10 +32,40 @@ export default function Home() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [input, committedTemp, committedRepPenalty]);
 
-  const saveSettings = () => {
+  // Function to call the API
+  const generatePoem = async () => {
+    const res = await fetch("/api/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt: input,
+        temperature: committedTemp,
+        repetition_penalty: committedRepPenalty,
+      }),
+    });
+    const data = await res.json();
+    setPoem(data.poem ?? "");
+  };
+
+  // Save settings and regenerate automatically using new settings
+  const saveSettings = async () => {
     setCommittedTemp(draftTemp);
     setCommittedRepPenalty(draftRepPenalty);
     setShowSettings(false);
+    if (input) {
+      // Directly call API with new draft values, bypassing delayed state update
+      const res = await fetch("/api/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: input,
+          temperature: draftTemp,
+          repetition_penalty: draftRepPenalty,
+        }),
+      });
+      const data = await res.json();
+      setPoem(data.poem ?? "");
+    }
   };
 
   return (
@@ -72,10 +93,7 @@ export default function Home() {
         <div className="fixed bottom-12 right-4 bg-black text-white p-2 rounded-lg shadow-lg w-48">
           <div className="mb-1 flex justify-between items-center">
             <strong className="text-xs">Settings</strong>
-            <button
-              className="text-xs"
-              onClick={() => setShowSettings(false)}
-            >
+            <button className="text-xs" onClick={() => setShowSettings(false)}>
               ✕
             </button>
           </div>
